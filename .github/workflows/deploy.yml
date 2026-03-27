@@ -9,20 +9,35 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - name: Checkout Code
+      uses: actions/checkout@v4
 
+    # ✅ FIX 1: Configure AWS Credentials
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_REGION }}
+
+    # ✅ FIX 2: Login to ECR (correct way)
+    - name: Login to Amazon ECR
+      uses: aws-actions/amazon-ecr-login@v2
+
+    # ✅ Build Docker Image
     - name: Build Docker Image
       run: docker build -t ecs-node-app .
 
-    - name: Push to ECR
-      run: |
-        aws ecr get-login-password --region ap-south-1 \
-        | docker login --username AWS --password-stdin ${{ secrets.ECR_URI }}
+    # ✅ FIX 3: Tag properly
+    - name: Tag Image
+      run: docker tag ecs-node-app:latest ${{ secrets.ECR_URI }}:latest
 
-        docker tag ecs-node-app:latest ${{ secrets.ECR_URI }}
-        docker push ${{ secrets.ECR_URI }}
+    # ✅ Push Image
+    - name: Push Image to ECR
+      run: docker push ${{ secrets.ECR_URI }}:latest
 
-    - name: Deploy ECS
+    # ✅ Deploy to ECS
+    - name: Deploy to ECS
       run: |
         aws ecs update-service \
         --cluster ecs-cluster \
