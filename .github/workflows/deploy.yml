@@ -41,5 +41,5 @@ jobs:
       run: |
         aws ecs update-service \
         --cluster ecs-cluster \
-        --service ecs-service \
+        --service ecs-task-def-service-hzn34jf2 \
         --force-new-deployment
