@@ -9,10 +9,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    # ✅ Checkout Code
     - name: Checkout Code
       uses: actions/checkout@v4
 
-    # ✅ FIX 1: Configure AWS Credentials
+    # ✅ Configure AWS Credentials
     - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v2
       with:
@@ -20,54 +21,55 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: ${{ secrets.AWS_REGION }}
 
-    # ✅ FIX 2: Login to ECR (correct way)
+    # ✅ Login to ECR
     - name: Login to Amazon ECR
       uses: aws-actions/amazon-ecr-login@v2
 
-    # ✅ Build Docker Image
-    - name: Build Docker Image
-      run: docker build -t ecs-node-app .
-
+    # ✅ Set Image Tag (UNIQUE)
     - name: Set Image Tag
       run: echo "IMAGE_TAG=${GITHUB_SHA}" >> $GITHUB_ENV
-    
+
+    # ✅ Build Docker Image (NO CACHE)
     - name: Build Image
-      run: docker build -t ecs-node-app .
-    
+      run: docker build --no-cache -t ecs-node-app .
+
+    # ✅ Tag Image
     - name: Tag Image
       run: docker tag ecs-node-app:latest ${{ secrets.ECR_URI }}:${IMAGE_TAG}
-    
+
+    # ✅ Push Image
     - name: Push Image
       run: docker push ${{ secrets.ECR_URI }}:${IMAGE_TAG}
 
+    # ✅ Update Task Definition with NEW Image
     - name: Update ECS Task Definition
-    run: |
-      TASK_DEF=$(aws ecs describe-task-definition \
-        --task-definition ecs-task-def \
-        --query taskDefinition)
-  
-      NEW_TASK_DEF=$(echo "$TASK_DEF" | jq --arg IMAGE "${{ secrets.ECR_URI }}:${IMAGE_TAG}" '
-        .containerDefinitions[0].image = $IMAGE
-        | del(
-            .taskDefinitionArn,
-            .revision,
-            .status,
-            .requiresAttributes,
-            .compatibilities,
-            .registeredAt,
-            .registeredBy
-          )
-      ')
-  
-      echo "$NEW_TASK_DEF" > new-task-def.json
-  
-      aws ecs register-task-definition \
-      --cli-input-json file://new-task-def.json
-  
-    # ✅ Deploy to ECS
+      run: |
+        TASK_DEF=$(aws ecs describe-task-definition \
+          --task-definition ecs-task-def \
+          --query taskDefinition)
+
+        NEW_TASK_DEF=$(echo "$TASK_DEF" | jq --arg IMAGE "${{ secrets.ECR_URI }}:${IMAGE_TAG}" '
+          .containerDefinitions[0].image = $IMAGE
+          | del(
+              .taskDefinitionArn,
+              .revision,
+              .status,
+              .requiresAttributes,
+              .compatibilities,
+              .registeredAt,
+              .registeredBy
+            )
+        ')
+
+        echo "$NEW_TASK_DEF" > new-task-def.json
+
+        aws ecs register-task-definition \
+          --cli-input-json file://new-task-def.json
+
+    # ✅ Deploy New Version
     - name: Deploy to ECS
       run: |
         aws ecs update-service \
-        --cluster esc-cluster \
-        --service ecs-task-def-service-hzn34jf2 \
-        --force-new-deployment
+          --cluster esc-cluster \
+          --service ecs-task-def-service-hzn34jf2 \
+          --force-new-deployment
