@@ -42,7 +42,7 @@ jobs:
 
     - name: Update ECS Task Definition
       run: |
-        TASK_DEF=$(aws ecs describe-task-definition --task-definition ecs-task --query taskDefinition)
+        TASK_DEF=$(aws ecs describe-task-definition --task-definition ecs-task-def:2 --query taskDefinition)
     
         NEW_TASK_DEF=$(echo $TASK_DEF | jq --arg IMAGE "${{ secrets.ECR_URI }}:${IMAGE_TAG}" \
         '.containerDefinitions[0].image=$IMAGE')
