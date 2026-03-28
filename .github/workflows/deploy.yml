@@ -72,4 +72,5 @@ jobs:
         aws ecs update-service \
           --cluster esc-cluster \
           --service ecs-task-def-service-hzn34jf2 \
+          --task-definition ecs-task-def \
           --force-new-deployment
