@@ -45,7 +45,7 @@ jobs:
     - name: Update ECS Task Definition
       run: |
         TASK_DEF=$(aws ecs describe-task-definition \
-          --task-definition ecs-task-def \
+          --task-definition ecs-node-task \
           --query taskDefinition)
 
         NEW_TASK_DEF=$(echo "$TASK_DEF" | jq --arg IMAGE "${{ secrets.ECR_URI }}:${IMAGE_TAG}" '
@@ -70,7 +70,7 @@ jobs:
     - name: Deploy to ECS
       run: |
         aws ecs update-service \
-          --cluster esc-cluster \
-          --service ecs-task-def-service-hzn34jf2 \
-          --task-definition ecs-task-def \
+          --cluster ecs-node-cluster \
+          --service ecs-node-service \
+          --task-definition ecs-node-task \
           --force-new-deployment
